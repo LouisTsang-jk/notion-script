@@ -23,8 +23,27 @@ const TARGET_PROPERTY_NAME = "豆瓣";
   // console.log(JSON.stringify(movieList));
   // Parse XML
   const { download } = await import("./src/parse/download.mjs");
-  const content = await download(movieList[1].url);
-  parseHTML(content);
+  for (const movie of movieList) {
+    movie.info = await parseHTML(await download(movie.url));
+  }
+  console.log(JSON.stringify(movieList))
+  // Update Tags
+  const { updateConfigByDatabase } = await import('./src/query/index.mjs')
+  const existTags = databaseConfig.properties.Tags.multi_select.options.map(({ name }) => name)
+  const movieTags = movieList.reduce((acc, {info}) => acc = [...acc, ...info.tags], [])
+  const COLORS = ['default', 'gray' , 'brown' , 'orange' , 'yellow' , 'green' , 'blue' , 'purple' , 'pink' , 'red' ]
+  await updateConfigByDatabase(DATABASE_ID, {
+    properties: {
+      Tags: {
+        multi_select: {
+          options: [...new Set([...existTags, ...movieTags])].map((option, index) => ({
+            name: option,
+            color: COLORS[index % COLORS.length]
+          }))
+        }
+      }
+    }
+  })
   // console.log(download())
   // Update Movie List
 })();
