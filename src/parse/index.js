@@ -2,9 +2,10 @@ const cheerio = require("cheerio");
 const parseHTML = (HTMLString) => {
   const $ = cheerio.load(HTMLString);
   const selector = {
-    title: "h1",
-    directer: 'a[rel="v:directedBy"]',
-    type: 'span[property="v:genre"]'
+    name: "h1",
+    director: 'a[rel="v:directedBy"]',
+    tags: 'span[property="v:genre"]',
+    // cover: 'img[rel="v:image"]'
   };
   const result = {}
   Object.keys(selector).forEach((key) => {

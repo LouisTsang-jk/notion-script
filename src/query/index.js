@@ -9,7 +9,7 @@ const getDataByDatabase = async (id) => {
 
 const getConfigByDatabase = async (id) => {
   const data = await notion.databases.retrieve({
-    database_id: id
+    database_id: id,
   });
   return Promise.resolve(data);
 };
@@ -22,8 +22,17 @@ const getPropertiesDataByPage = async (pageId, propertyId) => {
   return Promise.resolve(data);
 };
 
+const updatePropertiesDataByPage = async (pageId, body) => {
+  const data = await notion.pages.update({
+    page_id: pageId,
+    ...body
+  });
+  return Promise.resolve(data);
+};
+
 module.exports = {
   getDataByDatabase,
   getConfigByDatabase,
   getPropertiesDataByPage,
+  updatePropertiesDataByPage,
 };

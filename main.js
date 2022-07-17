@@ -2,6 +2,7 @@ const {
   getConfigByDatabase,
   getDataByDatabase,
   getPropertiesDataByPage,
+  updatePropertiesDataByPage,
 } = require("./src/query/index");
 
 const { parseHTML } = require("./src/parse/index");
@@ -18,32 +19,82 @@ const TARGET_PROPERTY_NAME = "豆瓣";
   // Get Movie URL(豆瓣)
   const movieList = [];
   for (const { id } of databaseData) {
-    movieList.push(await getPropertiesDataByPage(id, propertyId));
+    // FIXME change api: query database
+    movieList.push({
+      ...(await getPropertiesDataByPage(id, propertyId)),
+      pageId: id,
+    });
   }
-  // console.log(JSON.stringify(movieList));
-  // Parse XML
+  // Parse HTML
   const { download } = await import("./src/parse/download.mjs");
   for (const movie of movieList) {
     movie.info = await parseHTML(await download(movie.url));
   }
-  console.log(JSON.stringify(movieList))
   // Update Tags
-  const { updateConfigByDatabase } = await import('./src/query/index.mjs')
-  const existTags = databaseConfig.properties.Tags.multi_select.options.map(({ name }) => name)
-  const movieTags = movieList.reduce((acc, {info}) => acc = [...acc, ...info.tags], [])
-  const COLORS = ['default', 'gray' , 'brown' , 'orange' , 'yellow' , 'green' , 'blue' , 'purple' , 'pink' , 'red' ]
+  const existTags = databaseConfig.properties.Tags.multi_select.options.map(
+    ({ name }) => name
+  );
+  const movieTags = movieList.reduce(
+    (acc, { info }) => (acc = [...acc, ...info.tags]),
+    []
+  );
+  const COLORS = [
+    "default",
+    "gray",
+    "brown",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "purple",
+    "pink",
+    "red",
+  ];
+  const { updateConfigByDatabase } = await import("./src/query/index.mjs");
   await updateConfigByDatabase(DATABASE_ID, {
     properties: {
       Tags: {
         multi_select: {
-          options: [...new Set([...existTags, ...movieTags])].map((option, index) => ({
-            name: option,
-            color: COLORS[index % COLORS.length]
-          }))
-        }
-      }
-    }
-  })
-  // console.log(download())
+          options: [...new Set([...existTags, ...movieTags])].map(
+            (option, index) => ({
+              name: option,
+              color: COLORS[index % COLORS.length],
+            })
+          ),
+        },
+      },
+    },
+  });
   // Update Movie List
+  for (const movie of movieList) {
+    const { pageId, info } = movie;
+    const { name, director, tags } = info
+    await updatePropertiesDataByPage(pageId, {
+      properties: {
+        Name: {
+          title: [
+            {
+              type: 'text',
+              text: {
+                content: name
+              }
+            }
+          ]
+        },
+        Director: {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: director
+              },
+            },
+          ],
+        },
+        Tags: {
+          multi_select: tags.map(tag => ({ name: tag }))
+        }
+      },
+    });
+  }
 })();
